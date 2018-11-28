@@ -1,0 +1,21 @@
+body {
+  background-color: #141213;
+}
+
+.screen {
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  background: url('/static/background.jpg') no-repeat;
+  background-position: center center;
+  background-color: #141213;
+}
+
+body * {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
+}

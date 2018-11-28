@@ -1,0 +1,39 @@
+.window {
+  max-width: 720px;
+  box-shadow: 4px 4px 5px 4px rgba(0, 0, 0, 0.75);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.header {
+  width: 100%;
+  background: #222;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.buttons {
+  float: left;
+  margin-left: 0.5rem;
+}
+
+.icon {
+  width: 10px;
+  padding-right: 0.4rem;
+}
+
+.icon:hover {
+  opacity: 0.8;
+}
+
+.handle {
+  color: #00a9d4;
+  text-align: center;
+  position: relative;
+  margin-left: calc(50% - 100px);
+  cursor: default;
+}
+
+.content {
+  opacity: 0.8;
+}
