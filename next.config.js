@@ -1,4 +1,8 @@
 const withCSS = require('@zeit/next-css')
-module.exports = withCSS({
-  cssModules: true
-})
+const withTypescript = require('@zeit/next-typescript')
+
+module.exports = withTypescript(
+  withCSS({
+    cssModules: true
+  })
+)
