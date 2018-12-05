@@ -1,87 +1,128 @@
-import commands from './commands'
-import color, { hex } from './color'
+import { pipe } from 'rambda'
+import * as commands from './commands'
+import { hex } from '../utils/color'
+import {
+  CommandBuffer,
+  CommandOutput,
+  FileDescriptorName,
+  FileDescriptorRegistry,
+  InputBuffer,
+  Operators,
+  SyntaxTreeNode,
+  SubscribableFileDescriptor
+} from './types'
 
 const SHELL = `${hex('cbourne', '#00a9d4')}`
 
 const availableCommands = Object.keys(commands)
 
-interface FileDescriptorRegistry {
-  stdout: Function
-  stdin: Function
-  stderr: Function
-}
-
-let fileDescriptorRegistry: FileDescriptorRegistry = {
+const fileDescriptorRegistry: FileDescriptorRegistry = {
   stdout: () => {},
-  stdin: () => {},
+  stdin: {} as SubscribableFileDescriptor,
   stderr: () => {}
 }
 
-type FileDescriptorName = keyof FileDescriptorRegistry
-
 let location = '~'
-let commandBuffer = ''
-
-console.log(commands)
+let inputBuffer: InputBuffer = ''
 
 const isCommand = (command: string) => availableCommands.indexOf(command) !== -1
 
-const clearCommandBuffer = () => {
-  commandBuffer = ''
-}
-
-enum Operators {
-  AND = '&&',
-  OR = '||'
-}
-
-interface SyntaxTreeNode {
-  command: string
-  args: Array<string>
-  and: SyntaxTreeNode | null
-  or: SyntaxTreeNode | null
+const clearInputBuffer = () => {
+  inputBuffer = ''
 }
 
 const generateSyntaxTree = (
-  command: Array<string>,
+  commandBuffer: CommandBuffer,
   node: SyntaxTreeNode = {
     command: '',
-    args: [],
-    and: null,
-    or: null
+    args: []
   }
 ): SyntaxTreeNode => {
-  const currentCommand = command.shift()
+  const currentCommand = commandBuffer.shift()
 
   if (!currentCommand) return node
 
   if (isCommand(currentCommand) && !node.command)
-    return generateSyntaxTree(command, { ...node, command: currentCommand })
+    return generateSyntaxTree(commandBuffer, {
+      ...node,
+      command: currentCommand
+    })
   else if (Object.values(Operators).includes(currentCommand))
-    return generateSyntaxTree(
-      {
-        ...node,
-        and: generateSyntaxTree(command, {} as SyntaxTreeNode)
-      },
-      command
-    )
-  else
-    return generateSyntaxTree(command, {
+    return generateSyntaxTree(commandBuffer, {
+      ...node,
+      and: generateSyntaxTree(commandBuffer, {
+        command: '',
+        args: []
+      })
+    })
+  else if (node.command)
+    return generateSyntaxTree(commandBuffer, {
       ...node,
       args: [...node.args, currentCommand]
     })
+  else throw new Error(`cbourne: command not found: ${currentCommand}`)
 }
 
-const executeCommandBuffer = () => {
-  const syntaxTree = generateSyntaxTree(commandBuffer.split(' '))
-  console.log(syntaxTree)
+const toCommandBuffer = (inputBuffer: InputBuffer): CommandBuffer =>
+  inputBuffer.split(' ')
 
-  clearCommandBuffer()
-  fileDescriptorRegistry.stdout('\n')
+const executeSyntaxTreeNode = ({
+  command,
+  args,
+  and,
+  or
+}: SyntaxTreeNode): CommandOutput => {
+  const output: CommandOutput = commands[command](
+    args,
+    (updatedLocation: string) => (location = updatedLocation)
+  )
+
+  let operatorOutput: CommandOutput = {
+    stdout: '',
+    stderr: '',
+    exitCode: 0
+  }
+
+  if (output.exitCode === 0 && and) {
+    operatorOutput = executeSyntaxTreeNode(and)
+  } else if (output.exitCode !== 0 && or) {
+    operatorOutput = executeSyntaxTreeNode(or)
+  }
+
+  return {
+    exitCode: operatorOutput.exitCode,
+    stderr: `${output.stderr}${operatorOutput.stderr}`,
+    stdout: `${output.stdout}${operatorOutput.stdout}`
+  }
+}
+
+const newline = () => fileDescriptorRegistry.stdout('\n')
+
+const reset = (output: CommandOutput) => {
+  clearInputBuffer()
+
+  if (output.stdout) {
+    newline()
+    fileDescriptorRegistry.stdout(output.stdout)
+  }
+
+  if (output.stderr) {
+    newline()
+    fileDescriptorRegistry.stderr(output.stderr)
+  }
+
+  newline()
   fileDescriptorRegistry.stdout(`${SHELL} ${location} $ `)
 }
 
-const registerHandle = (
+const onEnterPress = pipe(
+  toCommandBuffer,
+  generateSyntaxTree,
+  executeSyntaxTreeNode,
+  reset
+)
+
+const registerFileDescriptor = (
   fileDescriptorName: FileDescriptorName,
   stream: Function
 ) => {
@@ -97,12 +138,12 @@ const init = () => {
 
 const setupStdin = () => {
   fileDescriptorRegistry.stdin.on('key', key => {
-    if (key.charCodeAt(0) == 13) executeCommandBuffer()
+    if (key.charCodeAt(0) == 13) onEnterPress(inputBuffer)
     else {
-      commandBuffer += key
+      inputBuffer += key
       fileDescriptorRegistry.stdout(key)
     }
   })
 }
 
-export { registerHandle, init }
+export { registerFileDescriptor, init }
