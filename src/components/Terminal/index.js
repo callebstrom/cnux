@@ -8,18 +8,9 @@ import * as winptyCompat from 'xterm/lib/addons/winptyCompat/winptyCompat'
 import color from '../../utils/color'
 import style from './style.css'
 import { withStateHandlers } from 'recompose'
-import { init as startShell, registerHandle } from '../../shell'
+import { init as startShell, registerFileDescriptor } from '../../shell'
 
 import { lifecycle as withLifecycle, compose } from 'recompose'
-
-/*process = {}
-
-process = Object.defineProperty(process, 'stdout', {
-  set: test => {
-    console.log(test)
-  },
-  get: () => ({ getWindowSize: () => [1920, 1080] })
-})*/
 
 Terminal.applyAddon(attach)
 Terminal.applyAddon(fit)
@@ -31,9 +22,9 @@ Terminal.applyAddon(winptyCompat)
 const lifecycle = withLifecycle({
   componentDidMount() {
     const { stderr, stdout, terminal } = this.props
-    registerHandle('stdout', stdout)
-    registerHandle('stderr', stderr)
-    registerHandle('stdin', terminal)
+    registerFileDescriptor('stdout', stdout)
+    registerFileDescriptor('stderr', stderr)
+    registerFileDescriptor('stdin', terminal)
 
     terminal.open(document.getElementById('terminal'))
     terminal.toggleFullScreen()

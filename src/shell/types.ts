@@ -7,7 +7,6 @@ export interface CommandOutput {
   stderr?: string
   exitCode: number
 }
-
 export interface SyntaxTreeNode {
   command: string
   args: CommandArguments

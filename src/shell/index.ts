@@ -60,7 +60,7 @@ const generateSyntaxTree = (
       ...node,
       args: [...node.args, currentCommand]
     })
-  else throw new Error(`cbourne: command not found: ${currentCommand}`)
+  else throw new Error(`${SHELL}: command not found: ${currentCommand}`)
 }
 
 const toCommandBuffer = (inputBuffer: InputBuffer): CommandBuffer =>
@@ -72,6 +72,7 @@ const executeSyntaxTreeNode = ({
   and,
   or
 }: SyntaxTreeNode): CommandOutput => {
+  if (!command) return {} as CommandOutput
   const output: CommandOutput = commands[command](
     args,
     (updatedLocation: string) => (location = updatedLocation)
